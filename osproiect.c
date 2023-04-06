@@ -13,5 +13,6 @@ int main(int argc,char *argv[])
    {
     perror("not enough arguments");
     exit(2);
+    
    }
 }
