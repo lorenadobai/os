@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <dirent.h>
 
 int main(int argc,char *argv[])
 {
@@ -13,6 +14,5 @@ int main(int argc,char *argv[])
    {
     perror("not enough arguments");
     exit(2);
-    
    }
 }
