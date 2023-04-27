@@ -11,6 +11,7 @@
 char path[1024];
 char result[1024];
 
+
 void RegularFileName(FILE *f)
 {
     int fd = fileno(f); 
