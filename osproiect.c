@@ -10,7 +10,11 @@
 #include <wait.h>
 char path[1024];
 char result[1024];
+char buffer[100];
+struct stat info;
 
+//verify fis: stat(<0), !S_ISREG
+//verify pipes: 
 
 void RegularFileName(FILE *f)
 {
@@ -40,9 +44,11 @@ void RFHardLinkCount(FILE *f)
         printf("%s has %d hard links\n", f, st.st_nlink);
 }
 
-void RFTimeModification(FILE *f)
+void RFTimeModification(char *path)
 {
-
+    struct stat attr;
+    stat(path, &attr);
+    printf("Last modified time: %s", ctime(&attr.st_mtime));
 }
 
 void RFAccess(FILE *f)
@@ -55,35 +61,57 @@ void RFSymbolic(FILE *f)
 
 }
 
+int makeInt(char *c)
+{
+    int j=0;
+    if(strcmp(c,"-n")==0)
+        j=1;
+    else if(strcmp(c,"-d")==0)
+            j=2;
+    else if(strcmp(c,"-h")==0)
+            j=3;
+    else if(strcmp(c,"-m")==0)
+            j=4;
+    else if(strcmp(c,"-a")==0)
+            j=5;
+    else if(strcmp(c,"-l")==0)
+            j=6;
+    return j;
+}
+
 int main(int argc,char *argv[])
 {
     FILE *fis;
     DIR *dir;
-    struct stat info;
-    if(argc<=2)
+    int verific=0;
+    if(argc<2)
     {
         perror("not enough arguments");
         exit(2);
     }
-    if(fis=open(argv[2], O_RDONLY)<0){
-        perror("fisOut cannot be opened!\n");
-        exit(0);
-    }
-    else
+    for(int i=0;i<argc;i++)
     {
-        char c;
-        printf("choose one for files: name (-n), size (-d), hard link count (-h), time of last modification (-m), access rights (-a), create symbolic link (-l, this will wait for user input for the name of the link).");
-        scanf("%c",c);
-        switch (c)
+        if(lstat(path,buffer)){
+            perror("fis cannot be opened!\n");
+            exit(0);
+        }
+        else
         {
-        case '-n': RegularFileName(fis); break;
-        case '-d': RegularFileSize(fis); break;
-        case '-h': RFHardLinkCount(fis); break;
-        case '-m': RFTimeModification(fis); break;
-        case '-a': RFAccess(fis); break;
-        case '-l': RFSymbolic(fis); break;
-        default:
-            break;
+          char c[2];
+          printf("Choose one for files:\n name (-n),\n size (-d),\n hard link count (-h),\n time of last modification (-m),\n access rights (-a),\n create symbolic link (-l, this will wait for user input for the name of the link).\n");
+          scanf("%s",c);
+          int j=makeInt(c);
+          switch (j)
+          {
+              case 1 : RegularFileName(fis); break;
+              case 2 : RegularFileSize(fis); break;
+              case 3 : RFHardLinkCount(fis); break;
+              case 4 : RFTimeModification(fis); break;
+              case 5 : RFAccess(fis); break;
+              case 6 : RFSymbolic(fis); break;
+              default: printf("it is not a choice");
+              break;
+           }
         }
     }
 }
