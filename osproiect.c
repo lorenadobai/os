@@ -13,37 +13,6 @@ char result[1024];
 char buffer[100];
 struct stat info;
 
-//verify fis: stat(<0), !S_ISREG
-//verify pipes: 
-
-void RegularFileName(FILE *f)
-{
-    int fd = fileno(f); 
-    sprintf(path, "/proc/self/fd/%d", fd);
-    memset(result, 0, sizeof(result));
-    readlink(path, result, sizeof(result)-1);
-    printf("%s\n", result);
-}
-
-void RegularFileSize(FILE *f)
-{
-    struct stat st;
-    stat(f, &st);
-    int size = st.st_size;
-}
-
-void RFHardLinkCount(FILE *f)
-{
-    struct stat st;
-    if (stat(f, &st) == -1) 
-    {
-        perror("stat doesn't funtion for hard links");
-        exit(0);
-    }
-    else 
-        printf("%s has %d hard links\n", f, st.st_nlink);
-}
-
 void RFTimeModification(char *path)
 {
     struct stat attr;
@@ -51,9 +20,20 @@ void RFTimeModification(char *path)
     printf("Last modified time: %s", ctime(&attr.st_mtime));
 }
 
-void RFAccess(FILE *f)
+void RFAccess(FILE *f, struct stat var)
 {
-
+    printf("User:\n    Read- %s\n    Write- %s\n    Exec- %s\n", 
+        (var.st_mode & S_IRUSR) ? "yes" : "no",
+        (var.st_mode & S_IWUSR) ? "yes" : "no",
+        (var.st_mode & S_IXUSR) ? "yes" : "no");
+    printf("Group: \n    Read- %s\n    Write- %s\n    Exec- %s\n", 
+        (var.st_mode & S_IRGRP) ? "yes" : "no",
+        (var.st_mode & S_IWGRP) ? "yes" : "no",
+        (var.st_mode & S_IXGRP) ? "yes" : "no");
+    printf("Others: \n    Read- %s\n    Write- %s\n    Exec- %s\n", 
+        (var.st_mode & S_IROTH) ? "yes" : "no",
+        (var.st_mode & S_IWOTH) ? "yes" : "no",
+        (var.st_mode & S_IXOTH) ? "yes" : "no");
 }
 
 void RFSymbolic(FILE *f)
@@ -79,39 +59,58 @@ int makeInt(char *c)
     return j;
 }
 
+void File(char* name, struct stat var)
+{
+    FILE *fis=fopen(name, "r");
+    if(fis==NULL){
+        perror("fis cannot be opened!\n");  
+        exit(2);
+    }
+    char c[2];
+    printf("Choose one for files:\n name (-n),\n size (-d),\n hard link count (-h),\n time of last modification (-m),\n access rights (-a),\n create symbolic link (-l, this will wait for user input for the name of the link).\n");
+    scanf("%s",c);
+    int j=makeInt(c);
+    pid_t pid;
+    pid = fork();
+    if(pid<0){
+    fprintf(stderr, "Failed to fork\n.");
+            exit(2);
+    }
+    if(pid==0){
+        switch (j)
+        {
+            case 1 : printf("File name is %s\n",name); break;
+            case 2 : printf("The file is %ld bytes long\n", (long)var.st_size); break;
+            case 3 : printf("The file has %ld hard links\n", (long)var.st_nlink); break;
+            case 4 : RFTimeModification(path); break;
+            case 5 : RFAccess(fis,var); break;
+            case 6 : RFSymbolic(fis); break;
+            default: printf("it is not a choice");
+            break;
+        }
+    }
+}
+
 int main(int argc,char *argv[])
 {
-    FILE *fis;
     DIR *dir;
-    int verific=0;
     if(argc<2)
     {
         perror("not enough arguments");
         exit(2);
     }
-    for(int i=0;i<argc;i++)
-    {
-        if(lstat(path,buffer)){
-            perror("fis cannot be opened!\n");
-            exit(0);
+    for(int i=1;i<argc;i++){
+
+        struct stat var;
+        if(stat(argv[i], &var) == -1){
+            perror("stat does not work");
+            exit(2);
         }
-        else
-        {
-          char c[2];
-          printf("Choose one for files:\n name (-n),\n size (-d),\n hard link count (-h),\n time of last modification (-m),\n access rights (-a),\n create symbolic link (-l, this will wait for user input for the name of the link).\n");
-          scanf("%s",c);
-          int j=makeInt(c);
-          switch (j)
-          {
-              case 1 : RegularFileName(fis); break;
-              case 2 : RegularFileSize(fis); break;
-              case 3 : RFHardLinkCount(fis); break;
-              case 4 : RFTimeModification(fis); break;
-              case 5 : RFAccess(fis); break;
-              case 6 : RFSymbolic(fis); break;
-              default: printf("it is not a choice");
-              break;
-           }
+        if(S_ISREG(var.st_mode)){
+                File(argv[i], var);
+        }
+        if(S_ISDIR(var.st_mode)){
+                Dir(argv[i], var);
         }
     }
 }
