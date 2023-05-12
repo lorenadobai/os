@@ -88,16 +88,12 @@ void checkEAndW(char *name, int createPipe[]){
     char buffer[1024];
     char command[1024];
     sprintf(command,"./script.sh %s", name);
-
     FILE* pipe= popen(command,"r");
     if(!pipe){
         perror("Couldn't open the pipe for script.sh");
         exit(0);
     }
-    
     printf("\n");
-
-
     int ok = 1;
     int warnings = 0, errors = 0;
     while(fgets(buffer, 1024, pipe)){
@@ -113,15 +109,12 @@ void checkEAndW(char *name, int createPipe[]){
         }
         ok = 0;
     }
-
     struct errorAndWarning Data;
     Data.warnings = warnings;
     Data.errors = errors;
-
     close(createPipe[0]);
     write(createPipe[1],&Data,sizeof(Data));
     close(createPipe[1]);
-
     pclose(pipe);
 }
 
